@@ -6,13 +6,14 @@ ruby "2.7.4"
 gem "rails", "~> 7.1.3", ">= 7.1.3.2"
 
 # Use postgresql as the database for Active Record
-gem "pg", "~> 1.1"
+gem "sqlite3", "~> 1.4"
 
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
 
 gem "geocoder"
 
+gem 'open_weather_sdk'
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 # gem "jbuilder"
 
