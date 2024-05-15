@@ -70,6 +70,10 @@ To fetch the forecast data, send a GET request to the **/forecast** endpoint wit
   curl "http://localhost:3000/forecast?zip=10001"
   ```
 
+## High Level System Design
+
+![High Level System Design](docs/Weather-Forecast-HLD.drawio.png)
+
 ## Implementation Details
 
 ### Geocoding Service
