@@ -30,16 +30,47 @@ RSpec.describe 'Forecasts API', type: :request do
       end
     end
 
-    context 'when geocoding fails' do
+    context 'when coordinates are blank' do
+      before do
+        allow_any_instance_of(GeocodingService).to receive(:coordinates).and_return(nil)
+      end
+
+      it 'returns an error message' do
+        get '/forecast', params: { address: 'invalid address' }
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(json_response['error']).to eq('Unable to fetch coordinates. Please provide valid address information.')
+      end
+    end
+
+    context 'when forecast is cached' do
+      let(:cached_forecast) { forecast_data.merge(cached: true) }
+
+      before do
+        allow_any_instance_of(GeocodingService).to receive(:coordinates).and_return(coordinates)
+        allow(Rails.cache).to receive(:exist?).with(coordinates).and_return(true)
+        allow(Rails.cache).to receive(:read).with(coordinates).and_return(cached_forecast)
+      end
+
+      it 'returns the cached forecast data' do
+        get '/forecast', params: { address: '20 W 34th St., New York, NY, 10001' }
+
+        expect(response).to have_http_status(:ok)
+        expect(json_response['temperature']).to eq(22.5)
+        expect(json_response['cached']).to be(true)
+      end
+    end
+
+    context 'when an error occurs during geocoding' do
       before do
         allow_any_instance_of(GeocodingService).to receive(:coordinates).and_raise(StandardError.new('Geocoding failed'))
       end
 
-      context 'returns an error message' do
-        before { get '/forecast', params: { address: 'Invalid Address' } }
+      it 'returns a bad request error' do
+        get '/forecast', params: { address: '20 W 34th St., New York, NY, 10001' }
 
-        specify { expect(response).to have_http_status(:bad_request) }
-        specify { expect(json_response['error']).to eq('Geocoding failed') }
+        expect(response).to have_http_status(:bad_request)
+        expect(json_response['error']).to eq('Geocoding failed')
       end
     end
   end

@@ -1,17 +1,26 @@
 class ForecastsController < ApplicationController
   def index
     coordinates = fetch_coordinates
-    return if coordinates.nil?
-    cached = cache_exist?(coordinates)
-    forecast = fetch_forecast(coordinates)
+    if coordinates.nil?
+      render json: { error: 'Unable to fetch coordinates. Please provide valid address information.' }, status: :unprocessable_entity
+      return
+    end 
     
+    if cached?(coordinates)
+      render_cached_forcast(coordinates)
+      return
+    end
+    
+    forecast = fetch_forecast(coordinates)
     render json: forecast
+  rescue StandardError => e
+    render json: { error: e.message }, status: :bad_request
   end
 
   private
 
   def fetch_coordinates
-    geocoding_service = GeocodingService.new(
+    GeocodingService.new(
       address: params[:address],
       street: params[:street],
       city: params[:city],
@@ -19,21 +28,19 @@ class ForecastsController < ApplicationController
       zip: params[:zip],
       latitude: params[:lat],
       longitude: params[:lon]
-    )
-
-    geocoding_service.coordinates
-  rescue StandardError => e
-    render json: { error: e.message }, status: :bad_request
-    nil
+    ).coordinates
   end
 
   def fetch_forecast(coordinates)
-    return if coordinates.nil?
-
     WeatherForecastService.new(coordinates: coordinates).fetch_forecast
   end
 
-  def cache_exist?(coordinates)
+  def cached?(coordinates)
     Rails.cache.exist?(coordinates)
+  end
+
+  def render_cached_forcast(coordinates)
+    cached_forecast = Rails.cache.read(coordinates)
+    render json: cached_forecast
   end
 end
